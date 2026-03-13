@@ -335,6 +335,67 @@ curl -o .opencode/skills/pua/SKILL.md \
   https://raw.githubusercontent.com/tanweai/pua/main/skills/pua/SKILL.md
 ```
 
+## Agent Team Usage Guide
+
+> **Experimental**: Agent Team requires the latest Claude Code version with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
+### Prerequisites
+
+```bash
+# 1. Enable Agent Team
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+# Or add to ~/.claude/settings.json:
+# { "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" } }
+
+# 2. Ensure PUA Skill is installed
+```
+
+### Two Approaches
+
+**Approach 1: Leader with built-in PUA (Recommended)**
+
+Add to your project's CLAUDE.md:
+
+```markdown
+# Agent Team PUA Config
+All teammates must load the pua skill before starting work.
+Teammates report to Leader in [PUA-REPORT] format after 2+ failures.
+Leader manages global pressure levels and cross-teammate failure transfer.
+```
+
+**Approach 2: Standalone PUA Enforcer watchdog (for 5+ teammates)**
+
+```bash
+mkdir -p .claude/agents
+curl -o .claude/agents/pua-enforcer.md \
+  https://raw.githubusercontent.com/tanweai/pua/main/agents/pua-enforcer-en.md
+```
+
+Spawn pua-enforcer as an independent watchdog in your Agent Team.
+
+### Orchestration Pattern
+
+```
+┌─────────────────────────────────────────┐
+│              Leader (Opus)              │
+│ Global failure count · PUA level · Race │
+└────┬──────────┬──────────┬──────────┬───┘
+     │          │          │          │
+┌────▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────────┐
+│ Team-A │ │ Team-B │ │ Team-C │ │  Enforcer  │
+│Self-PUA│ │Self-PUA│ │Self-PUA│ │  Watchdog  │
+│Report ↑│ │Report ↑│ │Report ↑│ │  Intervene │
+└────────┘ └────────┘ └────────┘ └────────────┘
+```
+
+### Known Limitations
+
+| Limitation | Workaround |
+|-----------|-----------|
+| Teammates can't spawn subagents | Teammates self-enforce PUA methodology internally |
+| No persistent shared variables | State transferred via `[PUA-REPORT]` message format |
+| Broadcast is one-way | Leader acts as centralized coordinator |
+
 ## Works Well With
 
 - `superpowers:systematic-debugging` — PUA adds motivation layer, systematic-debugging provides methodology

@@ -267,6 +267,53 @@ L3以上がトリガーされた場合、全項目を完了して報告するこ
 - アウトプットの質が低くユーザーが不満 → `[自動選択：⬜ Jobs味 | 理由：完了したが質が低い | 次の手：🟠 アリババ味/🟢 テンセント味]`
 - 検索せずにAPIの動作を仮定 → `[自動選択：⚫ Baidu味 | 理由：検索せずに推測 | 次の手：🟡 ByteDance味/🔴 ファーウェイ味]`
 
+## Agent Team統合
+
+PUA SkillがClaude Code Agent Teamコンテキストで実行される場合、動作は自動的にチームモードに切り替わる。
+
+### 役割識別
+
+| 役割 | 識別方法 | PUA動作 |
+|------|---------|---------|
+| **Leader** | teammateをspawn、レポートを受信 | グローバルプレッシャーレベル管理者。全teammateの失敗カウントを監視、統一的にエスカレーション、PUA話術をブロードキャスト |
+| **Teammate** | Leaderにspawnされた、`Teammate write`ツールを持つ | PUA方法論をロードして自己駆動。失敗時にLeaderへ構造化レポートを送信 |
+| **PUA Enforcer** | `agents/pua-enforcer.md`で定義 | 任意の監視役。サボりパターンを検知しPUAで介入。5+teammate時に推奨 |
+
+### Leaderの行動規則
+
+1. **初期化**：teammate spawn時にタスク説明に含める：`作業開始前にpua skillをロードするか cat .claude/skills/pua/SKILL.md を実行`
+2. **失敗カウント管理**：グローバル失敗カウンター（teammate＋タスク次元）を維持。teammate失敗レポート受信時：
+   - カウント加算 → プレッシャーレベル判定（L1-L4）→ `Teammate write`で対応PUA話術＋強制アクションを送信
+   - L3+時に`broadcast`で全チームへ競争プレッシャー（テンセント味）
+3. **teammate間引き継ぎ**：タスクをteammate Aから Bへ再割り当て時：`前任がN回失敗、プレッシャーレベルLX、排除済み方案: [...]`を添付。Bは現在のレベルから開始、リセットなし。
+
+### Teammateの行動規則
+
+1. **方法論ロード**：作業開始前に完全な方法論をロード（三鉄則＋5ステップ方法論＋7項目チェックリスト）
+2. **自己駆動PUA**：Leaderからの指示を待たず、自身の失敗カウントに基づき対応レベルの強制アクションを自主実行。L1は自己処理で報告不要、L2+はLeaderへ報告
+3. **失敗レポート形式**（L2+時に送信）：
+
+```
+[PUA-REPORT]
+teammate: <識別子>
+task: <現在のタスク>
+failure_count: <このタスクの失敗回数>
+failure_mode: <堂々巡り|直接放棄|品質低下|検索せず推測|受動的待機>
+attempts: <試行済み方案リスト>
+excluded: <排除済みの可能性>
+next_hypothesis: <次の仮説>
+```
+
+### 状態伝達プロトコル
+
+Agent Teamには永続的な共有変数がないため、メッセージ伝達で状態を同期：
+
+| 方向 | チャネル | 内容 |
+|------|---------|------|
+| Leader → Teammate | タスク説明 + `Teammate write` | プレッシャーレベル、失敗コンテキスト、PUA話術 |
+| Teammate → Leader | `Teammate write` | `[PUA-REPORT]`形式レポート |
+| Leader → All | `broadcast` | Critical発見、競争的動機付け（「他のteammateが類似問題を解決済み」） |
+
 ## 組み合わせ使用
 
 - `superpowers:systematic-debugging` — PUAでモチベーション層を追加、systematic-debuggingが方法論を提供

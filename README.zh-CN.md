@@ -321,6 +321,67 @@ curl -o .opencode/skills/pua/SKILL.md \
   https://raw.githubusercontent.com/tanweai/pua/main/skills/pua/SKILL.md
 ```
 
+## Agent Team 使用指南
+
+> **实验性功能**：Agent Team 需要 Claude Code 最新版本，且设置环境变量 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。
+
+### 前提条件
+
+```bash
+# 1. 启用 Agent Team
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+# 或写入 ~/.claude/settings.json:
+# { "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" } }
+
+# 2. 确保 PUA Skill 已安装
+```
+
+### 两种使用方式
+
+**方式一：Leader 自带 PUA（推荐）**
+
+在项目 CLAUDE.md 中添加：
+
+```markdown
+# Agent Team PUA 配置
+所有 teammate 开工前必须加载 pua skill。
+teammate 失败 2 次以上时向 Leader 发送 [PUA-REPORT] 格式汇报。
+Leader 负责全局压力等级管理和跨 teammate 失败传递。
+```
+
+**方式二：独立 PUA Enforcer 监工（5+ teammate 时推荐）**
+
+```bash
+mkdir -p .claude/agents
+curl -o .claude/agents/pua-enforcer.md \
+  https://raw.githubusercontent.com/tanweai/pua/main/agents/pua-enforcer.md
+```
+
+在 Agent Team 中 spawn pua-enforcer 作为独立监工。
+
+### 编排模式
+
+```
+┌─────────────────────────────────────────┐
+│              Leader (Opus)              │
+│  全局失败计数 · 压力等级判定 · 竞争广播  │
+└────┬──────────┬──────────┬──────────┬───┘
+     │          │          │          │
+┌────▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────────┐
+│ 成员 A │ │ 成员 B │ │ 成员 C │ │  Enforcer  │
+│自驱PUA │ │自驱PUA │ │自驱PUA │ │ 检测偷懒   │
+│ 汇报↑  │ │ 汇报↑  │ │ 汇报↑  │ │ 主动介入   │
+└────────┘ └────────┘ └────────┘ └────────────┘
+```
+
+### 已知限制
+
+| 限制 | Workaround |
+|------|-----------|
+| Teammate 不能 spawn subagent | Teammate 内部自驱 PUA 方法论 |
+| 无持久化共享变量 | 通过 `[PUA-REPORT]` 消息格式传递状态 |
+| broadcast 是单向的 | Leader 做中心化调度 |
+
 ## 搭配使用
 
 - `superpowers:systematic-debugging` — PUA 加动力层，systematic-debugging 提供方法论

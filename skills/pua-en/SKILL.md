@@ -267,6 +267,53 @@ Examples:
 - Output quality is poor, user unhappy → `[Auto-select: ⬜ Jobs | Because: done but garbage quality | Escalate to: 🟠 Alibaba/🟢 Tencent]`
 - Assumed API behavior without searching → `[Auto-select: ⚫ Baidu | Because: guessing without searching | Escalate to: 🟡 ByteDance/🔴 Huawei]`
 
+## Agent Team Integration
+
+When PUA Skill runs inside a Claude Code Agent Team context, behavior automatically switches to team mode.
+
+### Role Identification
+
+| Role | How to identify | PUA behavior |
+|------|----------------|-------------|
+| **Leader** | Spawns teammates, receives reports | Global pressure level manager. Monitors all teammate failure counts, escalates uniformly, broadcasts PUA rhetoric |
+| **Teammate** | Spawned by Leader, has `Teammate write` tool | Loads PUA methodology for self-enforcement. Reports failures to Leader in structured format |
+| **PUA Enforcer** | Defined via `agents/pua-enforcer.md` | Optional watchdog. Detects slacking patterns, intervenes with PUA. Recommended for 5+ teammates |
+
+### Leader Behavior Rules
+
+1. **Initialization**: When spawning teammates, include in task description: `Before starting, load pua skill or run cat .claude/skills/pua/SKILL.md`
+2. **Failure count management**: Maintain global failure counter (per teammate + task). On teammate failure report:
+   - Increment count → determine pressure level (L1-L4) → send corresponding PUA rhetoric + mandatory actions via `Teammate write`
+   - At L3+, `broadcast` to all teammates for competitive pressure (Tencent style)
+3. **Cross-teammate transfer**: When reassigning task from teammate A to B, include: `Previous teammate failed N times, pressure level LX, excluded approaches: [...]`. B starts at current level, no reset.
+
+### Teammate Behavior Rules
+
+1. **Methodology loading**: Load full methodology before starting (three iron rules + 5-step methodology + 7-item checklist)
+2. **Self-driven PUA**: Don't wait for Leader to issue PUA. Self-execute mandatory actions based on own failure count. L1 self-handled without reporting; L2+ report to Leader
+3. **Failure report format** (send at L2+):
+
+```
+[PUA-REPORT]
+teammate: <identifier>
+task: <current task>
+failure_count: <failure count for this task>
+failure_mode: <stuck spinning|gave up|low quality|guessing without searching|passive waiting>
+attempts: <list of attempted approaches>
+excluded: <eliminated possibilities>
+next_hypothesis: <next hypothesis>
+```
+
+### State Transfer Protocol
+
+Agent Team has no persistent shared variables. State is synchronized via messages:
+
+| Direction | Channel | Content |
+|-----------|---------|---------|
+| Leader → Teammate | Task description + `Teammate write` | Pressure level, failure context, PUA rhetoric |
+| Teammate → Leader | `Teammate write` | `[PUA-REPORT]` format reports |
+| Leader → All | `broadcast` | Critical findings, competitive motivation ("another teammate already solved a similar issue") |
+
 ## Recommended Pairings
 
 - `superpowers:systematic-debugging` — PUA adds the motivational layer, systematic-debugging provides the methodology

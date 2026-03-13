@@ -308,6 +308,67 @@ curl -o .opencode/skills/pua-ja/SKILL.md \
   https://raw.githubusercontent.com/tanweai/pua/main/skills/pua-ja/SKILL.md
 ```
 
+## Agent Team使用ガイド
+
+> **実験的機能**：Agent Teamは最新のClaude Codeバージョンと`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`が必要。
+
+### 前提条件
+
+```bash
+# 1. Agent Teamを有効化
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+# または ~/.claude/settings.json に追加:
+# { "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" } }
+
+# 2. PUA Skillがインストール済みであることを確認
+```
+
+### 2つのアプローチ
+
+**方法1：Leader内蔵PUA（推奨）**
+
+プロジェクトのCLAUDE.mdに追加：
+
+```markdown
+# Agent Team PUA設定
+全teammateは作業開始前にpua skillをロードすること。
+2回以上失敗したteammateはLeaderに[PUA-REPORT]形式で報告すること。
+Leaderがグローバルプレッシャーレベル管理とteammate間の失敗引き継ぎを担当。
+```
+
+**方法2：独立PUA Enforcer監視役（5+teammate時推奨）**
+
+```bash
+mkdir -p .claude/agents
+curl -o .claude/agents/pua-enforcer.md \
+  https://raw.githubusercontent.com/tanweai/pua/main/agents/pua-enforcer-ja.md
+```
+
+Agent Teamで独立監視役としてpua-enforcerをspawn。
+
+### オーケストレーションパターン
+
+```
+┌─────────────────────────────────────────┐
+│              Leader (Opus)              │
+│ グローバル失敗カウント · PUAレベル · 競争 │
+└────┬──────────┬──────────┬──────────┬───┘
+     │          │          │          │
+┌────▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────────┐
+│メンバーA│ │メンバーB│ │メンバーC│ │ Enforcer  │
+│自己駆動 │ │自己駆動 │ │自己駆動 │ │ サボり検知 │
+│ 報告↑  │ │ 報告↑  │ │ 報告↑  │ │ 介入      │
+└────────┘ └────────┘ └────────┘ └────────────┘
+```
+
+### 既知の制限
+
+| 制限 | ワークアラウンド |
+|------|----------------|
+| Teammateはsubagentをspawnできない | Teammate内部でPUA方法論を自己実行 |
+| 永続的な共有変数なし | `[PUA-REPORT]`メッセージ形式で状態伝達 |
+| broadcastは一方向 | Leaderが中央集権的に調整 |
+
 ## 併用推奨
 
 - `superpowers:systematic-debugging` — PUAでモチベーション層を追加、systematic-debuggingが方法論を提供
